@@ -223,7 +223,7 @@ namespace HistoryList {
                     FixMe: the retrun value of `Gtk.ListStore.remove` should be checked
                     Note:  in some cases the return value of `Gtk.ListStore.remove` is wrong
                 */
-                model.remove (iter);
+                model.remove (ref iter);
                 this.browser.close_tab (view);
                 if (length > 2)
                     this.resize_treeview ();

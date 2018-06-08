@@ -1,12 +1,10 @@
 /*
  Copyright (C) 2007-2009 Christian Dywan <christian@twotoasts.de>
  Copyright (C) 2008 Dale Whittaker <dayul@users.sf.net>
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
  License as published by the Free Software Foundation; either
  version 2.1 of the License, or (at your option) any later version.
-
  See the file COPYING for the full license text.
 */
 
@@ -29,6 +27,10 @@
 #include <glib/gi18n-lib.h>
 #include "katze/katze.h"
 #include <sqlite3.h>
+
+#ifdef LIBPVD
+    #include <libpvd.h>
+#endif
 
 static void
 plain_entry_activate_cb (GtkWidget* entry,
@@ -54,6 +56,48 @@ snapshot_load_finished_cb (GtkWidget*      web_view,
 }
 #endif
 
+static void
+midori_log_to_file (const gchar*   log_domain,
+                    GLogLevelFlags log_level,
+                    const gchar*   message,
+                    gpointer       user_data)
+{
+    FILE* logfile = fopen ((const char*)user_data, "a");
+    gchar* level_name = "";
+    time_t timestamp = time (NULL);
+
+    switch (log_level)
+    {
+        /* skip irrelevant flags */
+        case G_LOG_LEVEL_MASK:
+        case G_LOG_FLAG_FATAL:
+        case G_LOG_FLAG_RECURSION:
+
+        case G_LOG_LEVEL_ERROR:
+            level_name = "ERROR";
+            break;
+        case G_LOG_LEVEL_CRITICAL:
+            level_name = "CRITICAL";
+            break;
+        case G_LOG_LEVEL_WARNING:
+            level_name = "WARNING";
+            break;
+        case G_LOG_LEVEL_MESSAGE:
+            level_name = "MESSAGE";
+            break;
+        case G_LOG_LEVEL_INFO:
+            level_name = "INFO";
+            break;
+        case G_LOG_LEVEL_DEBUG:
+            level_name = "DEBUG";
+            break;
+    }
+
+    fprintf (logfile, "%s%s-%s **: %s\n", asctime (localtime (&timestamp)),
+        log_domain ? log_domain : "Midori", level_name, message);
+    fclose (logfile);
+}
+
 int
 main (int    argc,
       char** argv)
@@ -67,12 +111,14 @@ main (int    argc,
     gboolean debug = FALSE;
     gboolean run;
     gchar* snapshot;
+    gchar* logfile;
     gchar** execute;
     gboolean help_execute;
     gboolean version;
     gchar** uris;
     gchar* block_uris;
     gint inactivity_reset;
+    gchar* pvd;
     GOptionEntry entries[] =
     {
        { "app", 'a', 0, G_OPTION_ARG_STRING, &webapp,
@@ -110,6 +156,12 @@ main (int    argc,
        /* i18n: CLI: Close tabs, clear private data, open starting page */
        N_("Reset Midori after SECONDS seconds of inactivity"), N_("SECONDS") },
        #endif
+       { "log-file", 'l', 0, G_OPTION_ARG_FILENAME, &logfile,
+       N_("Redirects console warnings to the specified FILENAME"), N_("FILENAME")},
+       #ifdef LIBPVD
+       { "pvd", '\0', 0, G_OPTION_ARG_STRING, &pvd,
+       N_("Binds the process to the pvd"), NULL},
+       #endif
      { NULL }
     };
 
@@ -121,14 +173,41 @@ main (int    argc,
     plain = FALSE;
     run = FALSE;
     snapshot = NULL;
+    logfile = NULL;
     execute = NULL;
     help_execute = FALSE;
     version = FALSE;
     uris = NULL;
     block_uris = NULL;
     inactivity_reset = 0;
+    pvd = NULL;
     midori_app_setup (&argc, &argv, entries);
-
+    
+    #ifdef LIBPVD
+    if (pvd)
+    {
+        if (proc_bind_to_pvd(pvd) == -1)
+        {
+            g_print ("Error: binding to pvd %s failed\n", pvd);
+            return 1;
+        }
+        
+        char pvdname[PVDNAMSIZ];
+        memset(pvdname, 0, PVDNAMSIZ);
+        if (proc_get_bound_pvd(pvdname) == 1)
+        {
+            if (!strcmp(pvdname, ""))
+            {
+                g_print ("Error: pvd %s does not exist\n", pvd);
+                return 1;
+            }
+            g_print ("midori is running using the provisioning domain: %s\n", pvdname);
+        }
+        else
+            return 1;
+    }
+    #endif
+    
     if (debug)
     {
         gchar* gdb = g_find_program_in_path ("gdb");
@@ -287,6 +366,11 @@ main (int    argc,
         return 0;
     }
 
+    if (logfile)
+    {
+        g_log_set_default_handler (midori_log_to_file, (gpointer)logfile);
+    }
+
     if (plain)
     {
         GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -379,7 +463,7 @@ main (int    argc,
         gtk_main ();
         return 0;
     }
-
+    
     MidoriApp* app = midori_normal_app_new (config,
         portable ? "portable" : "normal", diagnostic_dialog,
         uris, execute, inactivity_reset, block_uris);
@@ -394,4 +478,3 @@ main (int    argc,
     g_object_unref (app);
     return 0;
 }
-

@@ -262,7 +262,7 @@ namespace Apps {
                             store.get (iter, 0, out launcher);
                             try {
                                 launcher.file.trash (null);
-                                store.remove (iter);
+                                store.remove (ref iter);
 
                                 string filename = Midori.Download.clean_filename (launcher.name);
 #if HAVE_WIN32

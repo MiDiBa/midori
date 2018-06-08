@@ -116,7 +116,7 @@ namespace ClipNotes {
                     if (current_note == note) {
                         current_note = null;
                     }
-                    notes_list_store.remove (iter);
+                    notes_list_store.remove (ref iter);
                     break;
                 }
             } while (notes_list_store.iter_next (ref iter));

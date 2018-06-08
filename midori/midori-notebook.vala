@@ -22,7 +22,7 @@ namespace Midori {
         public bool close_button_left { get; set; default = false; }
         public bool close_button_visible { get; set; default = false; }
 
-        protected Tally (Midori.Tab tab) {
+        public Tally (Midori.Tab tab) {
             this.tab = tab;
             box = new Gtk.HBox (false, 1);
             add (box);

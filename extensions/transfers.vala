@@ -275,7 +275,7 @@ namespace Transfers {
                     Transfer found;
                     store.get (iter, 0, out found);
                     if (transfer == found) {
-                        store.remove (iter);
+                        store.remove (ref iter);
                         break;
                     }
                 } while (store.iter_next (ref iter));
@@ -455,7 +455,7 @@ namespace Transfers {
                 if (notifications.length () == 1)
                     msg = _("The file '<b>%s</b>' has been downloaded.").printf (filename);
                 else
-                    msg = _("'<b>%s</b>' and %d other files have been downloaded.").printf (filename, notifications.length ());
+                    msg = _("'<b>%s</b>' and %u other files have been downloaded.").printf (filename, notifications.length ());
                 get_app ().send_notification (_("Transfer completed"), msg);
                 notifications = new GLib.List<string> ();
             }

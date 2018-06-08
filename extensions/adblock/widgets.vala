@@ -227,7 +227,7 @@ namespace Adblock {
                             liststore.get (iter, 0, out sub);
                             if (sub.mutable) {
                                 config.remove (sub);
-                                liststore.remove (iter);
+                                liststore.remove (ref iter);
                                 return true;
                             }
                         }
