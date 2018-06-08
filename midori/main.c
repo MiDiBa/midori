@@ -196,15 +196,13 @@ main (int    argc,
         memset(pvdname, 0, PVDNAMSIZ);
         if (proc_get_bound_pvd(pvdname) == 1)
         {
-            if (!strcmp(pvdname, ""))
-            {
-                g_print ("Error: pvd %s does not exist\n", pvd);
-                return 1;
-            }
             g_print ("midori is running using the provisioning domain: %s\n", pvdname);
         }
         else
+        {
+            g_print ("Error: pvd %s does not exist\n", pvd);
             return 1;
+        }
     }
     #endif
     
